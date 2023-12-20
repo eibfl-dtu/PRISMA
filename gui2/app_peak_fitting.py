@@ -15,8 +15,8 @@ def set_wdir():
 
 set_wdir()
 
-from prisma import parsers, fitpeaks
-from prisma.spectrum import Spectrum
+from prisma import parsers1, fitpeaks
+from prisma.spectrum1 import Spectrum
 
 
 
@@ -33,11 +33,11 @@ def payload_to_spectra(payload, parser:str):
     """ Load spectra from the FileUpload streamlit widget, using prisma parsers"""
 
     if parser == 'Single .csv':
-        spectra, spectra_metadata = parsers.single_csv(payload.getvalue())
+        spectra, spectra_metadata = parsers1.single_csv(payload.getvalue())
     elif parser == 'Single .txt (Bruker)':
-        spectra, spectra_metadata = parsers.single_txt_bruker(payload.getvalue())
+        spectra, spectra_metadata = parsers1.single_txt_bruker(payload.getvalue())
     elif parser == 'Multiple .txt':
-        spectra, spectra_metadata = parsers.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
+        spectra, spectra_metadata = parsers1.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
     else:
         raise KeyError('The parser is not defined')
     
@@ -68,8 +68,6 @@ def update_preprocessing_parameters(spectra_metadata:dict = None):
                 }}
         
     return preprocs_params
-
-
 
 
 def peakfit_spectrum(spectrum:Spectrum, peak_lineshape:str, peak_data:pd.DataFrame):
@@ -159,20 +157,18 @@ fig.update_layout(template="simple_white",
 
 if current_spectrum: 
 
-
-    fig.add_trace(go.Scatter(x=current_spectrum["root"].indexes,
-                                 y=current_spectrum["root"].counts, 
+    fig.add_trace(go.Scatter(x=current_spectrum.indexes,
+                                 y=current_spectrum.counts, 
                                  name="Spectrum",
                                  mode="markers",
                                  marker={"color":"#455A64"}))
     
-    raw_spectrum_trace = fig.data[0]
     
     if peak_data.empty or (peak_data.isnull().all(axis=1)).all():
         pass
 
     else:
-        fit_spectrum = peakfit_spectrum(spectrum=current_spectrum["root"], 
+        fit_spectrum = peakfit_spectrum(spectrum=current_spectrum, 
                                         peak_lineshape=peak_lineshape,
                                         peak_data=peak_data)
     
@@ -194,6 +190,5 @@ if current_spectrum:
 
 
     
-    
- 
+
 spectrum_container.plotly_chart(fig, use_container_width=True, config={'displaylogo': False})
