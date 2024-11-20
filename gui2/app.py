@@ -19,13 +19,13 @@ st.markdown("## Select a procesing pipeline")
 pipeline_col1, pipeline_col2, _, _= st.columns([1,1,1,1])
 
 with pipeline_col1:
-        st.image(Image.open("./gui2/assets/icon_preprocessing.png"), use_column_width=True)
+        st.image(Image.open("./gui2/assets/icon_preprocessing.png"), use_container_width=True)
         pipeline_preprocessing_selected = st.button("Pre-processing", use_container_width=True)
         st.markdown("Trimming, outlier rejection, downsampling, baseline correction.")
 
  
 with pipeline_col2:
-        st.image(Image.open("./gui2/assets/icon_fit.png"), use_column_width=True)
+        st.image(Image.open("./gui2/assets/icon_fit.png"), use_container_width=True)
         pipeline_fit_selected = st.button("Peak Fitting", use_container_width=True)
         st.markdown("Fitting with Lorentz, Gaussian and pseud-Voight peaks.")
 
