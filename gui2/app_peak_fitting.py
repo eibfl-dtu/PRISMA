@@ -32,6 +32,8 @@ from prisma.spectrum1 import Spectrum
 def payload_to_spectra(payload, parser:str):
     """ Load spectra from the FileUpload streamlit widget, using prisma parsers"""
 
+    st.session_state["batchready"] = False
+
     if parser == 'Single .csv':
         spectra, spectra_metadata = parsers1.single_csv(payload.getvalue())
     elif parser == 'Single .txt (Bruker)':
@@ -48,6 +50,8 @@ def payload_to_spectra(payload, parser:str):
 @st.cache_data
 def update_preprocessing_parameters(spectra_metadata:dict = None):
     """ Keeps track of pre-processing parameters that are updated from metadata values form the spectra"""
+
+    st.session_state["batchready"] = False
 
     if not spectra_metadata: #use default preprocessing params
         preprocs_params = {
@@ -72,15 +76,22 @@ def update_preprocessing_parameters(spectra_metadata:dict = None):
 
 def peakfit_spectrum(spectrum:Spectrum, peak_lineshape:str, peak_data:pd.DataFrame):
 
+    st.session_state["batchready"] = False
+
     peak_bounds=list(zip(peak_data["Peak lower bound location"], peak_data["Peak upper bound location"]))
     guess_widths = peak_data["Approximate Width"].to_list()
     lineshape = peak_lineshape
 
-    return fitpeaks(spectrum,
+    return fitpeaks.fit_peaks(spectrum,
                     peak_bounds=peak_bounds,
                     guess_widths=guess_widths,
                     lineshape = lineshape)
 
+
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv(index=False).encode('utf-8')
 
 ######################################### MAIN APP LOOP  ###############################################
 
@@ -124,6 +135,7 @@ if uploaded_files:
 else:
     current_spectrum = None
     spectra_metadata = None
+    spectra = None
 
 
 ################### PEAK FITTING SPECS #####################
@@ -164,7 +176,7 @@ if current_spectrum:
                                  marker={"color":"#455A64"}))
     
     
-    if peak_data.empty or (peak_data.isnull().all(axis=1)).all():
+    if peak_data.empty or (peak_data.isna().any(axis=1)).any():
         pass
 
     else:
@@ -176,7 +188,7 @@ if current_spectrum:
         fig.add_trace(go.Scatter(x=fit_spectrum.indexes,
                                     y=fit_spectrum.counts, 
                                     name="Peak fit", 
-                                    mode="lines",
+                                    line=dict(width=3, color='rgba(255, 65, 75, 0.8)'),
                                     marker={"color":"#FF1744"}))
     
         for peak_id, profile in fit_spectrum.profiles.items():
@@ -184,11 +196,85 @@ if current_spectrum:
             fig.add_trace(go.Scatter(x=fit_spectrum.indexes,
                                     y=profile, 
                                     name=peak_id, 
-                                    mode="lines",
-                                    marker={"color":"#FF1744"},
+                                    line=dict(width=0),
+                                    fillcolor='rgba(255, 65, 75, 0.2)',
                                     fill='tozeroy'))
 
-
+    # st.json(fit_spectrum.metadata["Fitted parameters"])
     
 
 spectrum_container.plotly_chart(fig, use_container_width=True, config={'displaylogo': False})
+
+
+###################### BATCH PROCESSING AND DOWNLOAD ######################
+
+st.markdown("### Batch processing")
+
+# donwload_processed_data = False
+# donwload_processing_parameters = False
+
+# disable_download = True if (donwload_processed_data or donwload_processed_data) else False
+disable_batchrun = True if not spectra else False
+
+batchcol1, batchcol2, batchcol3 = st.columns(3)
+
+run_batch_processing = batchcol1.button("Run batch processing", disabled=disable_batchrun)
+batch_progress_container = st.container()
+batch_log_container = st.container()
+
+
+if run_batch_processing:
+
+    progress_bar = batch_progress_container.progress(0.0, text="Processing spectra")
+
+    total_number_spectra = len(spectra.keys())
+    current_spectrum_number: int = 0
+    processed_spectra_dict: dict = {}
+    processed_parameters: list[dict] = []
+    
+    for spectrum_label, spectrum in spectra.items():
+
+        processed_spectrum = peakfit_spectrum(spectrum=spectrum, 
+                                        peak_lineshape=peak_lineshape,
+                                        peak_data=peak_data)
+        
+        if current_spectrum_number == 0:
+            processed_spectra_dict["index"] = processed_spectrum.indexes
+
+        processed_spectra_dict[spectrum_label+"_peaksum"] = processed_spectrum.counts
+        processed_parameters.append(processed_spectrum.metadata["Fitted parameters"])
+
+        for peak_id, profile in fit_spectrum.profiles.items():
+            processed_spectra_dict[spectrum_label+"_"+str(peak_id)] = profile
+        
+        current_spectrum_number = current_spectrum_number + 1
+        progress_bar.progress(int(100*current_spectrum_number/total_number_spectra), text=f"Processing spectra: {spectrum_label}")
+    
+    processing_df = pd.DataFrame(processed_spectra_dict) 
+    parameters_df = pd.DataFrame(processed_parameters) 
+    parameters_df.insert(loc=0,column="Spectrum", value=spectra_names)
+
+    st.session_state["batchready"] = True
+
+     
+if not st.session_state["batchready"]:
+    processing_df = pd.DataFrame()
+    parameters_df = pd.DataFrame()
+    disable_download = True
+
+    
+
+csv_profiles = convert_df(processing_df)
+csv_parameters = convert_df(parameters_df)
+
+donwload_processed_data = batchcol2.download_button(
+                        label="Download Fit spectra",
+                        data=csv_profiles,
+                        file_name='Fit_spectra.csv',
+                        mime='text/csv', disabled=disable_download) #, disabled=disable_download
+
+donwload_processing_parameters = batchcol3.download_button(
+                        label="Download peak parameters",
+                        data=csv_parameters,
+                        file_name='Peak_parameters.csv',
+                        mime='text/csv', disabled=disable_download) #, disabled=disable_download
