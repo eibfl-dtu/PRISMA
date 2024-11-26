@@ -18,6 +18,7 @@ class Spectrum:
         indexes: np.ndarray,
         counts: np.ndarray,
         baseline: Optional[np.ndarray] = None,
+        profiles: Optional[dict] = None,
         peaks: Optional[dict] = None,
         **kwargs
     ):
@@ -26,6 +27,7 @@ class Spectrum:
         # minimum difference between datapoint indexes
         self.counts = counts
         self.baseline = baseline
+        self.profiles = profiles
         self.peaks = peaks
         self.__load_metadata(**kwargs)
 
@@ -251,16 +253,16 @@ class Spectrum:
 
         return init_guess, (param_bounds_low, param_bounds_high)
 
-    def get_fitting_functions(lineshape, number_of_peaks):
-        if lineshape == "Lorentzian":
+    def get_fitting_functions(self, lineshape, number_of_peaks):
+        if lineshape == 'Lorentzian':
             fitting_function = prisma.lineshapes.lorentzians(number_of_peaks)
             single_peak_function = prisma.lineshapes.lorentzians(1)
 
-        elif lineshape == "Gaussian":
+        elif lineshape == 'Gaussian':
             fitting_function = prisma.lineshapes.gaussians(number_of_peaks)
             single_peak_function = prisma.lineshapes.gaussians(1)
 
-        elif lineshape == "Pseudo-Voight 50% Lorentzian":
+        elif lineshape == 'Pseudo-Voight 50% Lorentzian':
             fitting_function = prisma.lineshapes.pseudo_voight_50(
                 number_of_peaks
             )
@@ -271,7 +273,7 @@ class Spectrum:
     # ***************************FITTING FUNCTION***************************
 
     def fit_peaks(
-        self, spectrum, peak_bounds, guess_widths, lineshape="Lorentzian"
+        self, spectrum, peak_bounds, guess_widths, lineshape_peak="Lorentzian"
     ):
         """Fits peaks in the spectrum with a lorentzian profile. Parameters:
         * peak_bounds: [(low1,high1),(low2,high2),(low3,high3),...]
@@ -281,14 +283,13 @@ class Spectrum:
 
         new_metadata = {
             "Process": "Peak fitting",
-            "Process ID": self.BATTINFO_ID,
-            "Peak lineshapes": lineshape,
+            "Process ID": self.object_identifiers["BattInfo ID"],
+            "Peak lineshapes": lineshape_peak,
             "Number of peaks": len(guess_widths),
             "Initial widths": guess_widths,
             "Position bounds": peak_bounds,
             "Fitting success": False,
         }
-
         new_indexes = spectrum.indexes
 
         # formatting bounds and define fitting functions with helper functions
@@ -296,8 +297,8 @@ class Spectrum:
             peak_bounds, guess_widths, spectrum
         )
         fitting_function, single_peak_function = self.get_fitting_functions(
-            lineshape=lineshape,
-            number_of_peaks=new_metadata["Number of peaks"]
+            lineshape_peak,
+            new_metadata["Number of peaks"]
         )
 
         # fitting

@@ -4,8 +4,7 @@ import sys
 import pandas as pd
 from PIL import Image
 import plotly.graph_objects as go
-from prisma import parsers
-from prisma.spectrum import Spectrum
+
 
 @st.cache_data
 def set_wdir():
@@ -17,14 +16,18 @@ def set_wdir():
 
 set_wdir()
 
+from prisma import parsers
+from prisma.spectrum import Spectrum
+
 ######################################### FUNCTIONS #########################################
 
 
 @st.cache_data
-def payload_to_spectra(payload, parser:str):
+def payload_to_spectra(payload, parser: str):
     """ Load spectra from the FileUpload streamlit widget, using prisma parsers"""
 
-    st.session_state["batchready"] = False
+    if ('batchready' not in st.session_state):
+        st.session_state['batchready'] = False
 
     if parser == 'Single .csv':
         spectra, spectra_metadata = parsers.single_csv(payload.getvalue())
@@ -42,7 +45,8 @@ def payload_to_spectra(payload, parser:str):
 def update_preprocessing_parameters(spectra_metadata:dict = None):
     """ Keeps track of pre-processing parameters that are updated from metadata values form the spectra"""
 
-    st.session_state["batchready"] = False
+    if "batchready" not in st.session_state:
+        st.session_state["batchready"] = False
 
     if not spectra_metadata: #use default preprocessing params
         preprocs_params = {
@@ -61,23 +65,22 @@ def update_preprocessing_parameters(spectra_metadata:dict = None):
                     "min_width": 3*spectra_metadata["min_resolvable_width"],
                     "max_width": int(0.1*(max_index-min_index))
                 }}
-        
+
     return preprocs_params
 
 
-def peakfit_spectrum(spectrum:Spectrum, peak_lineshape:str, peak_data:pd.DataFrame):
+def peakfit_spectrum(spectrum: Spectrum, peak_lineshape: str, peak_data: pd.DataFrame):
 
-    st.session_state["batchready"] = False
+    if "batchready" not in st.session_state:
+        st.session_state["batchready"] = False
 
     peak_bounds=list(zip(peak_data["Peak lower bound location"], peak_data["Peak upper bound location"]))
     guess_widths = peak_data["Approximate Width"].to_list()
-    lineshape = peak_lineshape
 
     return spectrum.fit_peaks(spectrum,
                     peak_bounds=peak_bounds,
                     guess_widths=guess_widths,
-                    lineshape = lineshape)
-
+                    lineshape_peak=peak_lineshape)
 
 @st.cache_data
 def convert_df(df):
@@ -99,13 +102,13 @@ st.header("Peak fitting")
 
 with st.sidebar.expander("Upload files"):
 
-        parser = st.radio("Format of spectra", 
-                                options=["Single .csv", "Single .txt (Bruker)", "Multiple .txt"], 
-                                help="See documentation: what formats are accepted")
+    parser = st.radio("Format of spectra",
+            options=["Single .csv", "Single .txt (Bruker)", "Multiple .txt"],
+            help="See documentation: what formats are accepted")
         
-        multiple_files = True if parser == "Multiple .txt" else False
+    multiple_files = True if parser == "Multiple .txt" else False
 
-        uploaded_files = st.file_uploader("Choose CSV files", accept_multiple_files=multiple_files)
+    uploaded_files = st.file_uploader("Choose CSV files", accept_multiple_files=multiple_files)
 
 
 if uploaded_files:
@@ -218,13 +221,13 @@ if run_batch_processing:
     current_spectrum_number: int = 0
     processed_spectra_dict: dict = {}
     processed_parameters: list[dict] = []
-    
+
     for spectrum_label, spectrum in spectra.items():
 
         processed_spectrum = peakfit_spectrum(spectrum=spectrum, 
                                         peak_lineshape=peak_lineshape,
                                         peak_data=peak_data)
-        
+
         if current_spectrum_number == 0:
             processed_spectra_dict["index"] = processed_spectrum.indexes
 
@@ -233,21 +236,26 @@ if run_batch_processing:
 
         for peak_id, profile in fit_spectrum.profiles.items():
             processed_spectra_dict[spectrum_label+"_"+str(peak_id)] = profile
-        
+
         current_spectrum_number = current_spectrum_number + 1
         progress_bar.progress(int(100*current_spectrum_number/total_number_spectra), text=f"Processing spectra: {spectrum_label}")
-    
+
     processing_df = pd.DataFrame(processed_spectra_dict) 
     parameters_df = pd.DataFrame(processed_parameters) 
     parameters_df.insert(loc=0,column="Spectrum", value=spectra_names)
 
-    st.session_state["batchready"] = True
+    if ('batchready' not in st.session_state):
+        st.session_state['batchready'] = True
 
-
-if not st.session_state["batchready"]:
+if "batchready" in st.session_state:
+    if not st.session_state["batchready"]:
+        processing_df = pd.DataFrame()
+        parameters_df = pd.DataFrame()
+        disable_download = True
+else:
     processing_df = pd.DataFrame()
     parameters_df = pd.DataFrame()
-    disable_download = True
+    disable_download = False
 
 
 csv_profiles = convert_df(processing_df)
