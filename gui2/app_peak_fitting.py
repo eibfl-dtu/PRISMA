@@ -4,7 +4,8 @@ import sys
 import pandas as pd
 from PIL import Image
 import plotly.graph_objects as go
-
+from prisma import parsers
+from prisma.spectrum import Spectrum
 
 @st.cache_data
 def set_wdir():
@@ -13,19 +14,10 @@ def set_wdir():
     repository_root = os.path.join(current_directory, '..')
     sys.path.append(repository_root)
 
+
 set_wdir()
 
-from prisma import parsers1, fitpeaks
-from prisma.spectrum1 import Spectrum
-
-
-
-
-
-
-
 ######################################### FUNCTIONS #########################################
-
 
 
 @st.cache_data
@@ -35,16 +27,15 @@ def payload_to_spectra(payload, parser:str):
     st.session_state["batchready"] = False
 
     if parser == 'Single .csv':
-        spectra, spectra_metadata = parsers1.single_csv(payload.getvalue())
+        spectra, spectra_metadata = parsers.single_csv(payload.getvalue())
     elif parser == 'Single .txt (Bruker)':
-        spectra, spectra_metadata = parsers1.single_txt_bruker(payload.getvalue())
+        spectra, spectra_metadata = parsers.single_txt_bruker(payload.getvalue())
     elif parser == 'Multiple .txt':
-        spectra, spectra_metadata = parsers1.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
+        spectra, spectra_metadata = parsers.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
     else:
         raise KeyError('The parser is not defined')
     
     return spectra, list(spectra.keys()), spectra_metadata
-
 
 
 @st.cache_data
@@ -82,7 +73,7 @@ def peakfit_spectrum(spectrum:Spectrum, peak_lineshape:str, peak_data:pd.DataFra
     guess_widths = peak_data["Approximate Width"].to_list()
     lineshape = peak_lineshape
 
-    return fitpeaks.fit_peaks(spectrum,
+    return spectrum.fit_peaks(spectrum,
                     peak_bounds=peak_bounds,
                     guess_widths=guess_widths,
                     lineshape = lineshape)
@@ -96,12 +87,11 @@ def convert_df(df):
 ######################################### MAIN APP LOOP  ###############################################
 
 
-############## BOILERPLATE 
+############## BOILERPLATE
 
 st.sidebar.image(Image.open("./gui2/assets/logo.png"))
 
 st.header("Peak fitting")
-
 
 
 ################### FILE UPLOAD #####################
@@ -116,7 +106,6 @@ with st.sidebar.expander("Upload files"):
         multiple_files = True if parser == "Multiple .txt" else False
 
         uploaded_files = st.file_uploader("Choose CSV files", accept_multiple_files=multiple_files)
-
 
 
 if uploaded_files:
@@ -147,8 +136,6 @@ peak_data = st.data_editor(data = pd.DataFrame({"Peak lower bound location":[], 
                 hide_index=True,
                 num_rows="dynamic",
                 use_container_width=True)
-
-
 
 
 ############# PLOTS ###################
@@ -201,7 +188,7 @@ if current_spectrum:
                                     fill='tozeroy'))
 
     # st.json(fit_spectrum.metadata["Fitted parameters"])
-    
+
 
 spectrum_container.plotly_chart(fig, use_container_width=True, config={'displaylogo': False})
 
@@ -213,7 +200,7 @@ st.markdown("### Batch processing")
 # donwload_processed_data = False
 # donwload_processing_parameters = False
 
-# disable_download = True if (donwload_processed_data or donwload_processed_data) else False
+# disable_download = True if (donwload_processed_data or download_processed_data) else False
 disable_batchrun = True if not spectra else False
 
 batchcol1, batchcol2, batchcol3 = st.columns(3)
@@ -256,13 +243,12 @@ if run_batch_processing:
 
     st.session_state["batchready"] = True
 
-     
+
 if not st.session_state["batchready"]:
     processing_df = pd.DataFrame()
     parameters_df = pd.DataFrame()
     disable_download = True
 
-    
 
 csv_profiles = convert_df(processing_df)
 csv_parameters = convert_df(parameters_df)
