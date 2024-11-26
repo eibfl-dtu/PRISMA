@@ -19,8 +19,8 @@ def set_wdir():
 
 set_wdir()
 
-from prisma import parsers1, preprocessing, baselines
-from prisma.spectrum1 import Spectrum
+from prisma import parsers, preprocessing, baselines
+from prisma.spectrum import Spectrum
 
 
 
@@ -33,11 +33,11 @@ def payload_to_spectra(payload, parser:str):
     """ Load spectra from the FileUpload streamlit widget, using prisma parsers"""
 
     if parser == 'Single .csv':
-        spectra, spectra_metadata = parsers1.single_csv(payload.getvalue())
+        spectra, spectra_metadata = parsers.single_csv(payload.getvalue())
     elif parser == 'Single .txt (Bruker)':
-        spectra, spectra_metadata = parsers1.single_txt_bruker(payload.getvalue())
+        spectra, spectra_metadata = parsers.single_txt_bruker(payload.getvalue())
     elif parser == 'Multiple .txt':
-        spectra, spectra_metadata = parsers1.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
+        spectra, spectra_metadata = parsers.multiple_txt({spectrum_bits.name : spectrum_bits.getvalue() for spectrum_bits in payload})
     else:
         raise KeyError('The parser is not defined')
     
