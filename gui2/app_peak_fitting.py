@@ -254,11 +254,9 @@ spectrum_container.plotly_chart(
 ###################### BATCH PROCESSING AND DOWNLOAD ######################
 
 st.markdown("### Batch processing")
-
-# donwload_processed_data = False
-# donwload_processing_parameters = False
-
-# disable_download = True if (donwload_processed_data or download_processed_data) else False
+processing_df = pd.DataFrame()
+parameters_df = pd.DataFrame()
+disable_download = True
 disable_batchrun = True if not spectra else False
 
 batchcol1, batchcol2, batchcol3 = st.columns(3)
@@ -315,34 +313,32 @@ if run_batch_processing:
     parameters_df.insert(loc=0, column="Spectrum", value=spectra_names)
 
     if "batchready" not in st.session_state:
+        st.session_state.add("batchready", True)
+        disable_download = False
+    else:
         st.session_state["batchready"] = True
+        disable_download = False
 
-if "batchready" in st.session_state:
-    if not st.session_state["batchready"]:
-        processing_df = pd.DataFrame()
-        parameters_df = pd.DataFrame()
-        disable_download = True
-else:
-    processing_df = pd.DataFrame()
-    parameters_df = pd.DataFrame()
-    disable_download = False
-
+    csv_profiles = convert_df(processing_df)
+    csv_parameters = convert_df(parameters_df)
 
 csv_profiles = convert_df(processing_df)
 csv_parameters = convert_df(parameters_df)
 
-donwload_processed_data = batchcol2.download_button(
+download_processed_data = batchcol2.download_button(
+    key="download_processed_data",
     label="Download Fit spectra",
     data=csv_profiles,
     file_name="Fit_spectra.csv",
     mime="text/csv",
     disabled=disable_download,
-)  # , disabled=disable_download
+)
 
-donwload_processing_parameters = batchcol3.download_button(
+download_processing_parameters = batchcol3.download_button(
+    key="download_processing_parameters",
     label="Download peak parameters",
     data=csv_parameters,
     file_name="Peak_parameters.csv",
     mime="text/csv",
     disabled=disable_download,
-)  # , disabled=disable_download
+)

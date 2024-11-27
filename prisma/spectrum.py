@@ -311,7 +311,7 @@ class Spectrum:
 
         # formatting bounds and define fitting functions with helper functions
         init_guess, param_bounds = self.prisma_peak_defaults(
-            peak_bounds, guess_widths, spectrum
+            peak_bounds, guess_widths
         )
         fitting_function, single_peak_function = self.get_fitting_functions(
             lineshape_peak,
