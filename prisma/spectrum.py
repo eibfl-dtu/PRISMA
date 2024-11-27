@@ -132,7 +132,10 @@ class Spectrum:
 
                 new_counts = spectrum.counts.copy()
                 new_counts[outliers_idxs_no_neighbors] = np.nan
-                new_indexes = spectrum.indexes
+                new_indexes = spectrum.indexes.copy()
+                new_indexes[outliers_idxs_no_neighbors] = np.nan
+                new_counts = new_counts[~np.isnan(new_counts)]
+                new_indexes = new_indexes[~np.isnan(new_indexes)]
 
             return Spectrum(indexes=new_indexes, counts=new_counts)
 
