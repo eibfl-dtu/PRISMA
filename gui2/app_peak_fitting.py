@@ -16,7 +16,7 @@ def set_wdir():
 
 set_wdir()
 
-from prisma import parsers
+from prisma.util import parsers
 from prisma.spectrum import Spectrum
 
 ######################################### FUNCTIONS #########################################

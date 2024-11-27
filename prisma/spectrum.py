@@ -5,7 +5,7 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from typing import Optional
 from scipy.optimize import curve_fit
-import prisma.lineshapes
+import prisma.util.lineshapes
 
 """Templates of Spectrum object"""
 
@@ -255,18 +255,22 @@ class Spectrum:
 
     def get_fitting_functions(self, lineshape, number_of_peaks):
         if lineshape == 'Lorentzian':
-            fitting_function = prisma.lineshapes.lorentzians(number_of_peaks)
-            single_peak_function = prisma.lineshapes.lorentzians(1)
-
-        elif lineshape == 'Gaussian':
-            fitting_function = prisma.lineshapes.gaussians(number_of_peaks)
-            single_peak_function = prisma.lineshapes.gaussians(1)
-
-        elif lineshape == 'Pseudo-Voight 50% Lorentzian':
-            fitting_function = prisma.lineshapes.pseudo_voight_50(
+            fitting_function = prisma.util.lineshapes.lorentzians(
                 number_of_peaks
             )
-            single_peak_function = prisma.lineshapes.pseudo_voight_50(1)
+            single_peak_function = prisma.util.lineshapes.lorentzians(1)
+
+        elif lineshape == 'Gaussian':
+            fitting_function = prisma.util.lineshapes.gaussians(
+                number_of_peaks
+            )
+            single_peak_function = prisma.util.lineshapes.gaussians(1)
+
+        elif lineshape == 'Pseudo-Voight 50% Lorentzian':
+            fitting_function = prisma.util.lineshapes.pseudo_voight_50(
+                number_of_peaks
+            )
+            single_peak_function = prisma.util.lineshapes.pseudo_voight_50(1)
 
         return fitting_function, single_peak_function
 

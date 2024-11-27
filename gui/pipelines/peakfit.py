@@ -8,7 +8,7 @@ from .views.fitpeaks import ViewFitPeaks
 from .views.load import ViewLoad
 from .views.plots import PlotPeaks
 
-import prisma.parsers
+import prisma.util.parsers
 import prisma.fitpeaks
 
 
@@ -65,11 +65,11 @@ class PeakFitting:
 
     def aux_run_available_parser(self, payload, parser):
         if parser == 'Single .csv':
-            return prisma.parsers.single_csv(payload)
+            return prisma.util.parsers.single_csv(payload)
         elif parser == 'Single .txt (Bruker)':
-            return prisma.parsers.single_txt_bruker(payload)
+            return prisma.util.parsers.single_txt_bruker(payload)
         elif parser == 'Multiple .txt':
-            return prisma.parsers.multiple_txt(payload)
+            return prisma.util.parsers.multiple_txt(payload)
         else:
             raise KeyError('The parser is not defined')
 

@@ -1,32 +1,34 @@
 # © Copyright 2021, PRISMA’s Authors
 
 import numpy as np
+from typing import Any, Dict
 from prisma.spectrum import Spectrum
 
 
 def single_txt_bruker(bitstream: str):
 
     # initialize variables
-    spectra, spectra_metadata = {}, {}
-    indexes = None
+    spectra = dict()
+    spectra_metadata: Dict[str, Any] = {}
+    indexes = np.array([])
 
     try:
-        for line in bitstream.split(sep=b"\n"):
+        for line in bitstream.split(sep="\n"):
             counts, label = None, None  # refresh after every loop
 
-            if line.startswith(b"#"):  # ignore metadata from instrument
+            if line.startswith("#"):  # ignore metadata from instrument
                 pass
 
             elif line == b"":  # ignore empty lines (like the last line)
                 pass
 
-            elif line.startswith(b"\t"):  # line where wavenumbers are stored
-                indexes = np.array(line.split(b"\t"))[1:].astype(
+            elif line.startswith("\t"):  # line where wavenumbers are stored
+                indexes = np.array(line.split("\t"))[1:].astype(
                     "float64"
                 )  # avoid first element because is ''
 
             else:
-                temporary_array = np.array(line.split(b"\t")).astype("float64")
+                temporary_array = np.array(line.split("\t")).astype("float64")
                 label, counts = temporary_array[0], temporary_array[1:]
                 # for every line of counts, instatiate spectrum
                 spectra[label] = Spectrum(
@@ -38,24 +40,30 @@ def single_txt_bruker(bitstream: str):
                 )
 
         spectra_metadata["common_energy_axis"] = True
-        spectra_metadata["energy_limits"] = [np.amin(indexes), np.amax(indexes)]
+        spectra_metadata["energy_limits"] = [
+            np.amin(indexes), np.amax(indexes)
+        ]
         spectra_metadata["number_of_spectra"] = len(spectra)
         spectra_metadata["number_of_datapoints"] = len(indexes)
-        spectra_metadata["min_resolvable_width"] = np.abs(indexes[1] - indexes[0])
+        spectra_metadata["min_resolvable_width"] = np.abs(
+            indexes[1] - indexes[0]
+        )
         spectra_metadata["error"] = ""
 
         if spectra_metadata["number_of_spectra"] == 0:
-            spectra = None
+            spectra = dict()
             spectra_metadata["error"] = (
-                "File not recognized. Consult the documentation for supported *.txt file format"
+                "File not recognized. Consult the documentation for supported \
+                *.txt file format"
             )
         else:
             spectra_metadata["error"] = ""
 
     except ValueError:
-        spectra = None
+        spectra = dict()
         spectra_metadata["error"] = (
-            "File not recognized. Consult the documentation for supported *.txt file format"
+            "File not recognized. Consult the documentation for \
+            supported *.txt file format"
         )
 
     return spectra, spectra_metadata
@@ -64,25 +72,29 @@ def single_txt_bruker(bitstream: str):
 def single_csv(bitstream: str):
 
     # initialize variables
-    spectra, spectra_metadata = {}, {}
+    spectra = dict()
+    spectra_metadata: Dict[str, Any] = {}
 
     try:
 
         # separate bitstream into a list of lines
-        read_lines = bitstream.split(sep=b"\r\n")
+        read_lines = bitstream.split(sep="\r\n")
 
-        # read the first line: names attached to each spectrum. Ignores first element of line (empty string)
-        spectra_names = np.array(read_lines[0].split(sep=b",")[1:], dtype=str)
+        # read the first line: names attached to each spectrum.
+        # Ignores first element of line (empty string)
+        spectra_names = np.array(read_lines[0].split(sep=",")[1:], dtype=str)
 
-        # Read remaining lines. Each line is a row that starts with the wavenumber, and continues with the intensity of each spectrum at that wavenumber.
-        # Each line is split into elements (via ;), transformed into a numpy array and stored as an element of the list
+        # Read remaining lines. Each line is a row that starts with the
+        # wavenumber, and continues with the intensity of each spectrum
+        # at that wavenumber. Each line is split into elements (via ;),
+        # transformed into a numpy array and stored as an element of the list
         # Lines starting with empty string (b'') are ignored.
         # List is also transformed to a numpy array
         spectra_data = np.array(
             [
-                np.array(line.split(sep=b","), dtype=float)
+                np.array(line.split(sep=","), dtype=float)
                 for line in read_lines[1:]
-                if line.split(sep=b",")[0] != b""
+                if line.split(sep=",")[0] != b""
             ]
         )
 
@@ -96,25 +108,27 @@ def single_csv(bitstream: str):
                 min_resolvable_width=np.abs(indexes[1] - indexes[0]),
                 number_of_datapoints=len(column),
             )  # instatiate spectrum
-
         spectra_metadata["common_energy_axis"] = True
-        spectra_metadata["energy_limits"] = [np.amin(indexes), np.amax(indexes)]
+        spectra_metadata["energy_limits"] = [np.amin(indexes),
+                                             np.amax(indexes)]
         spectra_metadata["number_of_spectra"] = len(spectra)
         spectra_metadata["number_of_datapoints"] = len(indexes)
-        spectra_metadata["min_resolvable_width"] = np.abs(indexes[1] - indexes[0])
-
+        spectra_metadata["min_resolvable_width"] = np.abs(indexes[1] -
+                                                          indexes[0])
         if spectra_metadata["number_of_spectra"] == 0:
-            spectra = None
+            spectra = dict()
             spectra_metadata["error"] = (
-                "File not recognized. Consult the documentation for supported *.csv file format"
+                "File not recognized. Consult the documentation for supported\
+                *.csv file format"
             )
         else:
             spectra_metadata["error"] = ""
 
     except ValueError:
-        spectra = None
+        spectra = dict()
         spectra_metadata["error"] = (
-            "File not recognized. Consult the documentation for supported *.csv file format"
+            "File not recognized. Consult the documentation for supported\
+            *.csv file format"
         )
 
     return spectra, spectra_metadata
@@ -130,7 +144,8 @@ def multiple_txt(upload: dict):
         0,
     )
     first_energy_axis = np.array([])
-    spectra, spectra_metadata = {}, {"common_energy_axis": True}
+    spectra = dict()
+    spectra_metadata: Dict[str, Any] = {"common_energy_axis": True}
 
     try:
 
@@ -148,7 +163,8 @@ def multiple_txt(upload: dict):
             elif not np.array_equal(first_energy_axis, indexes):
                 spectra_metadata["common_energy_axis"] = False
 
-            # update overall minimum and maximum values of energy, and the maximum number of datapoints
+            # update overall minimum and maximum values of energy, and the
+            # maximum number of datapoints
             current_minimum_energy_value = np.amin(indexes)
             current_maximum_energy_value = np.amax(indexes)
             current_n_datapoints = len(indexes)
@@ -189,17 +205,19 @@ def multiple_txt(upload: dict):
         spectra_metadata["min_resolvable_width"] = overall_min_res_width
 
         if spectra_metadata["number_of_spectra"] == 0:
-            spectra = None
+            spectra = dict()
             spectra_metadata["error"] = (
-                "Some of the files were not recognized. Consult the documentation for supported *.txt file format"
+                "Some of the files were not recognized. Consult the\
+                documentation for supported *.txt file format"
             )
         else:
             spectra_metadata["error"] = ""
 
     except ValueError:
-        spectra = None
+        spectra = dict()
         spectra_metadata["error"] = (
-            "Some of the files were not recognized. Consult the documentation for supported *.txt file format"
+            "Some of the files were not recognized. Consult the documentation\
+            for supported *.txt file format"
         )
 
     return spectra, spectra_metadata
@@ -209,9 +227,11 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
     # #load binary text file
-    path = r"C:\Users\eibfl\Documents\Lead_projects\software_spectra_analysis\example_data_horiba_psi\_12_11_3.txt"
+    path = r"C:\Users\eibfl\Documents\Lead_projects\
+             software_spectra_analysis\example_data_horiba_psi\_12_11_3.txt"
     with open(path, mode="rb") as spectra_file:
-        spectra, spectra_metadata = multiple_txt({"test file": spectra_file.read()})
+        spectra, spectra_metadata = multiple_txt({"test file":
+                                                  spectra_file.read()})
     name = "test file"
 
     print(spectra)
