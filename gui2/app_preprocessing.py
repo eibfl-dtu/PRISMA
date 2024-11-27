@@ -2,7 +2,6 @@ import streamlit as st
 import sys
 import pandas as pd
 from PIL import Image
-import plotly.express as px
 import plotly.graph_objects as go
 import os
 
@@ -31,10 +30,15 @@ def payload_to_spectra(payload, parser: str):
     if parser == "Single .csv":
         spectra, spectra_metadata = parsers.single_csv(payload.getvalue())
     elif parser == "Single .txt (Bruker)":
-        spectra, spectra_metadata = parsers.single_txt_bruker(payload.getvalue())
+        spectra, spectra_metadata = parsers.single_txt_bruker(
+            payload.getvalue()
+        )
     elif parser == "Multiple .txt":
         spectra, spectra_metadata = parsers.multiple_txt(
-            {spectrum_bits.name: spectrum_bits.getvalue() for spectrum_bits in payload}
+            {
+                spectrum_bits.name: spectrum_bits.getvalue()
+                for spectrum_bits in payload
+            }
         )
     else:
         raise KeyError("The parser is not defined")
@@ -43,12 +47,16 @@ def payload_to_spectra(payload, parser: str):
 
 
 @st.cache_data
-def update_preprocessing_parameters(spectra_metadata: dict = None):
+def update_preprocessing_parameters(spectra_metadata: dict = dict()):
     """Keeps track of pre-processing parameters that are updated from metadata values form the spectra"""
 
     if not spectra_metadata:  # use default preprocessing params
         preprocs_params = {
-            "trimming": {"min_value": 400, "max_value": 4000, "value": [500, 3500]}
+            "trimming": {
+                "min_value": 400,
+                "max_value": 4000,
+                "value": [500, 3500],
+            }
         }
     else:
         min_index, max_index = spectra_metadata["energy_limits"]
@@ -96,7 +104,7 @@ def convert_df(df):
     return df.to_csv(index=False).encode("utf-8")
 
 
-######################################### MAIN APP LOOP  ###############################################
+############################ MAIN APP LOOP  ##################################
 
 
 ############## BOILERPLATE
@@ -139,7 +147,9 @@ if uploaded_files:
         st.markdown("Metadata:")
         st.json(spectra_metadata)
 
-    selected_spectrum_name: str = st.sidebar.selectbox("Select spectrum", spectra_names)
+    selected_spectrum_name: str = st.sidebar.selectbox(
+        "Select spectrum", spectra_names
+    )
 
     current_spectrum = spectra[selected_spectrum_name]
 
@@ -183,16 +193,28 @@ with tab_outliers:
         "Removes points outside X * IQR of the spectral noise. X is the outlier removal threshold."
     )
     outliers_threshold: float = st.slider(
-        "Outlier removal threshold", min_value=0.0, max_value=3.0, value=0.0, step=0.5
+        "Outlier removal threshold",
+        min_value=0.0,
+        max_value=3.0,
+        value=0.0,
+        step=0.5,
     )
 
 with tab_baseline:
     st.markdown("Applies Eiler's ALS algorithm to fit a baseline to spectra")
     baseline_p: float = st.slider(
-        "log10 (P-parameter)", min_value=-6.5, max_value=-0.5, value=-1.5, step=0.5
+        "log10 (P-parameter)",
+        min_value=-6.5,
+        max_value=-0.5,
+        value=-1.5,
+        step=0.5,
     )
     baseline_lambda: float = st.slider(
-        "log10 (Lambda-parameter)", min_value=-7.0, max_value=14.0, value=7.0, step=0.5
+        "log10 (Lambda-parameter)",
+        min_value=-7.0,
+        max_value=14.0,
+        value=7.0,
+        step=0.5,
     )
 
 
@@ -280,7 +302,10 @@ if current_spectrum:
     fig_processed.update_xaxes(title_text="Index")
     fig_processed.update_yaxes(title_text="Counts")
     fig_processed.update_layout(
-        title="Processed spectrum", title_x=0.05, title_y=0.82, template="simple_white"
+        title="Processed spectrum",
+        title_x=0.05,
+        title_y=0.82,
+        template="simple_white",
     )
 
 
@@ -289,14 +314,20 @@ else:
         go.Scatter(x=[0], y=[0], mode="markers", marker={"color": "#455A64"})
     )
     fig_raw.update_layout(
-        title="Raw spectrum", title_x=0.05, title_y=0.82, template="simple_white"
+        title="Raw spectrum",
+        title_x=0.05,
+        title_y=0.82,
+        template="simple_white",
     )
 
     fig_processed.add_trace(
         go.Scatter(x=[0], y=[0], mode="markers", marker={"color": "#455A64"})
     )
     fig_processed.update_layout(
-        title="Processed spectrum", title_x=0.05, title_y=0.82, template="simple_white"
+        title="Processed spectrum",
+        title_x=0.05,
+        title_y=0.82,
+        template="simple_white",
     )
 
 
@@ -327,7 +358,9 @@ batch_log_container = st.container()
 
 if run_batch_processing:
 
-    progress_bar = batch_progress_container.progress(0.0, text="Processing spectra")
+    progress_bar = batch_progress_container.progress(
+        0.0, text="Processing spectra"
+    )
 
     total_number_spectra = len(spectra.keys())
     current_spectrum_number = 0
