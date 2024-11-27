@@ -94,7 +94,6 @@ def peakfit_spectrum(
     guess_widths = peak_data["Approximate Width"].to_list()
 
     return spectrum.fit_peaks(
-        spectrum,
         peak_bounds=peak_bounds,
         guess_widths=guess_widths,
         lineshape_peak=peak_lineshape,

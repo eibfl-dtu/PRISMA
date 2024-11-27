@@ -84,15 +84,11 @@ def process_spectrum(
 ):
     """Takes preprocessing parameters from the widgets to apply all pre-processing functions"""
 
-    processed_spectrum = spectrum.trimming(spectrum, trim_range)
-    processed_spectrum = spectrum.downsample(
-        processed_spectrum, donwsampling_factor
-    )
-    processed_spectrum = spectrum.reject_outliers(
-        processed_spectrum, outliers_threshold
-    )
-    processed_spectrum = spectrum.asymmetric_least_squares(
-        processed_spectrum, log_p=baseline_p, log_lambda=baseline_lambda
+    processed_spectrum = spectrum.trimming(trim_range)
+    processed_spectrum = processed_spectrum.downsample(donwsampling_factor)
+    processed_spectrum = processed_spectrum.reject_outliers(outliers_threshold)
+    processed_spectrum = processed_spectrum.asymmetric_least_squares(
+        log_p=baseline_p, log_lambda=baseline_lambda
     )
 
     return processed_spectrum

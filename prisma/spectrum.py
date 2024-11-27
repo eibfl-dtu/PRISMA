@@ -1,5 +1,6 @@
 # © Copyright 2021, PRISMA’s Authors
 import numpy as np
+import math
 import scipy as sp
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
@@ -40,7 +41,7 @@ class Spectrum:
             else:
                 self.metadata.update({key: value})
 
-    def trimming(self, spectrum, within):
+    def trimming(self, within):
         """Trim raw spectrum
         * within [float,float]: lower and upper limits
         of the range to be studied
@@ -49,7 +50,7 @@ class Spectrum:
             "Process": "Trimming",
             "Process ID": self.object_identifiers["BattInfo ID"],
         }
-
+        spectrum = self
         idxs_within = np.where(
             (spectrum.indexes > within[0]) &
             (spectrum.indexes < within[1]),
@@ -78,11 +79,11 @@ class Spectrum:
             metadata=new_metadata
         )
 
-    def downsample(self, spectrum, downsampling_factor: int):
-
+    def downsample(self, downsampling_factor: int):
+        spectrum = self
         if downsampling_factor > 1:
-
-            samples_decimated = int(len(spectrum.counts) / downsampling_factor)
+            samples_decimated = math.ceil(len(spectrum.counts) /
+                                          downsampling_factor)
             min_index: float = min(spectrum.indexes)
             max_index: float = max(spectrum.indexes)
             new_counts = sp.signal.decimate(
@@ -93,13 +94,14 @@ class Spectrum:
                 max_index, min_index, samples_decimated, endpoint=False
             )
 
-            return Spectrum(indexes=new_indexes, counts=new_counts)
+            return Spectrum(indexes=new_indexes, counts=new_counts,
+                            metadata=spectrum.metadata)
 
         else:
             return spectrum
 
-    def reject_outliers(self, spectrum, outliers_threshold=0.0):
-
+    def reject_outliers(self, outliers_threshold=0.0):
+        spectrum = self
         if outliers_threshold > 0.0:
 
             differential_counts = np.abs(
@@ -138,12 +140,16 @@ class Spectrum:
                 new_counts = new_counts[~np.isnan(new_counts)]
                 new_indexes = new_indexes[~np.isnan(new_indexes)]
 
-            return Spectrum(indexes=new_indexes, counts=new_counts)
+            return Spectrum(
+                indexes=new_indexes,
+                counts=new_counts,
+                metadata=spectrum.metadata,
+            )
 
         else:
             return spectrum
 
-    def asymmetric_least_squares(self, spectrum, log_p=-1.5, log_lambda=7):
+    def asymmetric_least_squares(self, log_p=-1.5, log_lambda=7):
         PROCESS_TYPE = "Asymmetric Least Squares"
         BATTINFO_ID = self.object_identifiers["BattInfo ID"]
         new_metadata = {
@@ -153,7 +159,7 @@ class Spectrum:
             "Log10(p)": log_p,
             "Log10(lambda)": log_lambda,
         }
-
+        spectrum = self
         param_p, param_lambda = 10**log_p, 10**log_lambda
 
         nan_counts_mask = np.isnan(spectrum.counts)
@@ -203,7 +209,7 @@ class Spectrum:
         )
     # *****************************HELPER FUNCTIONS************************
 
-    def prisma_peak_defaults(self, peak_bounds, max_widths, spectrum):
+    def prisma_peak_defaults(self, peak_bounds, max_widths):
         # Format peak_bounds and peak_widhts to parameter bounds for the curve
         # fit function
         # init_guess   --> initial guesses for the fitting parameters:
@@ -211,6 +217,8 @@ class Spectrum:
         # initial guesses for the fitting parameters
         # param_bounds --> 2-tuple of lists with lower and upper bounds for
         # the fitting parameters: ([y0,h1,p1,w1,...],[y0,h1,p1,w1,...])
+        spectrum = self
+
         overall_max_counts = np.amax(spectrum.counts)
 
         limit_resolvable_width = self.RESOLVABLE_WIDTH_FACTOR * np.abs(
@@ -281,7 +289,7 @@ class Spectrum:
     # ***************************FITTING FUNCTION***************************
 
     def fit_peaks(
-        self, spectrum, peak_bounds, guess_widths, lineshape_peak="Lorentzian"
+        self, peak_bounds, guess_widths, lineshape_peak="Lorentzian"
     ):
         """Fits peaks in the spectrum with a lorentzian profile. Parameters:
         * peak_bounds: [(low1,high1),(low2,high2),(low3,high3),...]
@@ -298,6 +306,7 @@ class Spectrum:
             "Position bounds": peak_bounds,
             "Fitting success": False,
         }
+        spectrum = self
         new_indexes = spectrum.indexes
 
         # formatting bounds and define fitting functions with helper functions
@@ -379,6 +388,6 @@ class Spectrum:
 
 
 if __name__ == "__main__":
-    raw_spectrum = Spectrum(np.ndarray(46), np.ndarray(12), wavelnght=45)
+    print("This is a Spectrum object template")
     # print(dir(test_object))
     # print(type(test_object.__str__()))
