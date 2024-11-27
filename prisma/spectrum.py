@@ -86,10 +86,11 @@ class Spectrum:
             min_index: float = min(spectrum.indexes)
             max_index: float = max(spectrum.indexes)
             new_counts = sp.signal.decimate(
-                spectrum.counts, downsampling_factor
+                spectrum.counts, downsampling_factor, zero_phase=True
             )
+            '''has to be flipped to not mirror, why?'''
             new_indexes = np.linspace(
-                min_index, max_index, samples_decimated, endpoint=False
+                max_index, min_index, samples_decimated, endpoint=False
             )
 
             return Spectrum(indexes=new_indexes, counts=new_counts)
