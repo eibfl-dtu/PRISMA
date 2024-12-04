@@ -11,7 +11,7 @@ from .views.plots import PlotBaseline, PlotIntensities
 
 import prisma.preprocessing
 import prisma.baselines
-import prisma.parsers
+import prisma.util.parsers
 
 
 # TKINTER OPTION IMPORTS
@@ -89,11 +89,11 @@ class BaselineCorrection:
 
     def aux_run_available_parser(self, payload, parser):
         if parser == 'Single .csv':
-            return prisma.parsers.single_csv(payload)
+            return prisma.util.parsers.single_csv(payload)
         elif parser == 'Single .txt (Bruker)':
-            return prisma.parsers.single_txt_bruker(payload)
+            return prisma.util.parsers.single_txt_bruker(payload)
         elif parser == 'Multiple .txt':
-            return prisma.parsers.multiple_txt(payload)
+            return prisma.util.parsers.multiple_txt(payload)
         else:
             raise KeyError('The parser is not defined')
 
